@@ -6,11 +6,13 @@ import com.google.gson.*;
 import com.google.protobuf.ByteString;
 import emu.grasscutter.*;
 import emu.grasscutter.Grasscutter.ServerRunMode;
+import emu.grasscutter.data.DataLoader;
 import emu.grasscutter.net.proto.QueryCurrRegionHttpRspOuterClass.QueryCurrRegionHttpRsp;
 import emu.grasscutter.net.proto.QueryRegionListHttpRspOuterClass.QueryRegionListHttpRsp;
 import emu.grasscutter.net.proto.RegionInfoOuterClass.RegionInfo;
 import emu.grasscutter.net.proto.RegionSimpleInfoOuterClass.RegionSimpleInfo;
 import emu.grasscutter.net.proto.RetcodeOuterClass.Retcode;
+import emu.grasscutter.net.proto.ResVersionConfigOuterClass.ResVersionConfig;
 import emu.grasscutter.net.proto.StopServerInfoOuterClass.StopServerInfo;
 import emu.grasscutter.server.event.dispatch.*;
 import emu.grasscutter.server.http.Router;
@@ -155,6 +157,114 @@ public final class RegionHandler implements Router {
         regionListResponseCN = Utils.base64Encode(updatedRegionListCN.toByteString().toByteArray());
     }
 
+    private static Optional<String> loadVersionRegionData(String versionName) {
+        if (versionName == null || versionName.isEmpty()) {
+            return Optional.empty();
+        }
+
+        var clientPrefix = versionName.replaceAll("[/.0-9]*", "");
+        var versionFile =
+                "version/" + GameConstants.VERSION + "/" + clientPrefix + GameConstants.VERSION + ".json";
+
+        try (var reader = DataLoader.loadReader(versionFile)) {
+            var root = JsonParser.parseReader(reader).getAsJsonObject();
+            var regionInfoJson = root.getAsJsonObject("RegionInfo");
+            if (regionInfoJson == null) {
+                return Optional.empty();
+            }
+
+            var regionInfo = buildRegionInfoFromVersion(regionInfoJson);
+            var response =
+                    QueryCurrRegionHttpRsp.newBuilder()
+                            .setRegionInfo(regionInfo)
+                            .setClientSecretKey(ByteString.copyFrom(Crypto.DISPATCH_SEED))
+                            .setMsg(getString(root, "Msg"))
+                            .setRetcode(getInt(root, "Retcode"))
+                            .build();
+
+            Grasscutter.getLogger().info("[Dispatch] Loaded client hotfix region data: " + versionFile);
+            return Optional.of(Utils.base64Encode(response.toByteString().toByteArray()));
+        } catch (Exception exception) {
+            Grasscutter.getLogger()
+                    .debug(
+                            "[Dispatch] No client hotfix region data found for "
+                                    + versionName
+                                    + " at "
+                                    + versionFile,
+                            exception);
+            return Optional.empty();
+        }
+    }
+
+    private static RegionInfo buildRegionInfoFromVersion(JsonObject json) {
+        var builder =
+                RegionInfo.newBuilder()
+                        .setGateserverIp(lr(GAME_INFO.accessAddress, GAME_INFO.bindAddress))
+                        .setGateserverPort(lr(GAME_INFO.accessPort, GAME_INFO.bindPort))
+                        .setPayCallbackUrl(getString(json, "PayCallbackUrl"))
+                        .setAreaType(getString(json, "AreaType"))
+                        .setCdkeyUrl(getString(json, "CdkeyUrl"))
+                        .setPrivacyPolicyUrl(getString(json, "PrivacyPolicyUrl"))
+                        .setFeedbackUrl(getString(json, "FeedbackUrl"))
+                        .setBulletinUrl(getString(json, "BulletinUrl"))
+                        .setResourceUrl(getString(json, "ResourceUrl"))
+                        .setDataUrl(getString(json, "DataUrl"))
+                        .setResourceUrlBak(getString(json, "ResourceUrlBak"))
+                        .setDataUrlBak(getString(json, "DataUrlBak"))
+                        .setClientDataVersion(getInt(json, "ClientDataVersion"))
+                        .setClientSilenceDataVersion(getInt(json, "ClientSilenceDataVersion"))
+                        .setClientDataMd5(getString(json, "ClientDataMd5"))
+                        .setClientSilenceDataMd5(getString(json, "ClientSilenceDataMd5"))
+                        .setClientVersionSuffix(getString(json, "ClientVersionSuffix"))
+                        .setClientSilenceVersionSuffix(getString(json, "ClientSilenceVersionSuffix"))
+                        .setHandbookUrl(getString(json, "HandbookUrl"))
+                        .setOfficialCommunityUrl(getString(json, "OfficialCommunityUrl"))
+                        .setAccountBindUrl(getString(json, "AccountBindUrl"))
+                        .setUserCenterUrl(getString(json, "UserCenterUrl"))
+                        .setGameBiz(getString(json, "GameBiz"))
+                        .setNextResourceUrl(getString(json, "NextResourceUrl"))
+                        .setGateserverDomainName(getString(json, "GateserverDomainName"))
+                        .setUseGateserverDomainName(getBoolean(json, "UseGateserverDomainName"));
+
+        var resVersionConfig = json.getAsJsonObject("ResVersionConfig");
+        if (resVersionConfig != null) {
+            builder.setResVersionConfig(buildResVersionConfig(resVersionConfig));
+        }
+
+        var nextResVersionConfig = json.getAsJsonObject("NextResVersionConfig");
+        if (nextResVersionConfig != null) {
+            builder.setNextResVersionConfig(buildResVersionConfig(nextResVersionConfig));
+        }
+
+        return builder.build();
+    }
+
+    private static ResVersionConfig buildResVersionConfig(JsonObject json) {
+        return ResVersionConfig.newBuilder()
+                .setRelogin(getBoolean(json, "Relogin"))
+                .setMd5(getString(json, "Md5"))
+                .setReleaseTotalSize(getString(json, "ReleaseTotalSize"))
+                .setVersionSuffix(getString(json, "VersionSuffix"))
+                .setBranch(getString(json, "Branch"))
+                .setVersion(getInt(json, "Version"))
+                .build();
+    }
+
+    private static String getString(JsonObject json, String key) {
+        var value = json.get(key);
+        return value == null || value.isJsonNull() ? "" : value.getAsString();
+    }
+
+    private static int getInt(JsonObject json, String key) {
+        var value = json.get(key);
+        return value == null || value.isJsonNull() ? 0 : value.getAsInt();
+    }
+
+    private static boolean getBoolean(JsonObject json, String key) {
+        var value = json.get(key);
+        return value != null && !value.isJsonNull() && value.getAsBoolean();
+    }
+
     @Override
     public void applyRoutes(Javalin javalin) {
         javalin.get("/query_region_list", RegionHandler::queryRegionList);
@@ -249,6 +359,7 @@ public final class RegionHandler implements Router {
             if (!ctx.queryParamMap().values().isEmpty()) {
                 if (region != null) regionData = region.getBase64();
             }
+            regionData = loadVersionRegionData(versionName).orElse(regionData);
 
             var clientVersion = versionName.replaceAll(Pattern.compile("[a-zA-Z]").pattern(), "");
             var versionCode = clientVersion.split("\\.");
