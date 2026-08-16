@@ -323,12 +323,12 @@ public class ConfigContainer {
             /* Replace the client's beta watermark text for everyone on this server. */
             public boolean enabled = true;
             /* Text to show. Capped at 254 bytes by the payload format; longer values are ignored. */
-            public String text = "TuttyTeam";
+            public String text = "HertaPS";
             /* Colour as hex (#RRGGBB or #RGB). Leave blank to keep the client's default grey. */
-            public String color = "#FFFFFF";
+            public String color = "#C8B6FF";
             /* Set to fade from "color" to this one across the text. Blank means a flat colour.
              * A gradient costs ~24 bytes per character, so it fits roughly 10 characters. */
-            public String gradientTo = "#00FF80";
+            public String gradientTo = "#6A5ACD";
             /* CmdId to send the wind seed notify under. 0 uses PacketOpcodes.WindSeedClientNotify,
              * which the 7.0 dump gives as 226. Set to -1 to send nothing at all.
              *
