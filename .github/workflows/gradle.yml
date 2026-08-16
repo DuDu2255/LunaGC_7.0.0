@@ -1,29 +1,24 @@
-# 此工作流使用 GitHub Actions 自动编译 Java Gradle 项目
-# 支持依赖缓存，提高编译速度
-# 更多信息:
-# https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-gradle
+# Java Gradle 自动编译并发布 Release
 
 name: Java CI with Gradle
 
 
 on:
 
-  # 监听所有分支提交
-  # 不限制版本分支，避免版本升级后工作流失效
+  # 所有分支提交自动编译
   push:
     branches:
       - "**"
 
-  # Pull Request 自动检查
+  # PR 检查
   pull_request:
-
 
   # 手动运行
   workflow_dispatch:
 
 
 
-# 防止同一个分支重复编译
+# 防止同一个分支重复运行
 concurrency:
 
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -42,7 +37,6 @@ jobs:
 
     permissions:
 
-      # 用于创建 Release
       contents: write
 
 
@@ -52,11 +46,13 @@ jobs:
 
     # 拉取源码
     - name: 检出代码
+
       uses: actions/checkout@v4
 
 
 
-    # 安装 Java 21 环境
+    # JDK 21
+
     - name: 配置 JDK 21
 
       uses: actions/setup-java@v5
@@ -69,15 +65,15 @@ jobs:
 
 
 
-    # 配置 Gradle 环境
-    # 自动缓存 Gradle 依赖，提高编译速度
+    # Gradle 缓存
+
     - name: 配置 Gradle
 
-      uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582
+      uses: gradle/actions/setup-gradle@v4
 
 
 
-    # 使用 Gradle Wrapper 编译
+    # 编译
 
     - name: Gradle 编译
 
@@ -85,12 +81,9 @@ jobs:
 
 
 
-    # 查找生成的 jar 文件
+    # 获取 jar
 
-    # LunaGC jar 格式:
-    # LunaGC-版本号.jar
-
-    - name: 获取 jar 文件信息
+    - name: 获取 jar 文件
 
       id: jar
 
@@ -104,9 +97,7 @@ jobs:
 
 
 
-    # 保存编译产物
-
-    # GitHub Artifact 默认保存 90 天
+    # 上传 Artifact
 
     - name: 上传编译文件
 
@@ -124,13 +115,9 @@ jobs:
 
     # 自动发布 Release
 
-    # 生成永久下载地址:
-    # https://github.com/用户/仓库/releases/latest/download/文件名.jar
-
     - name: 发布最新 Release
 
-      if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
-
+      if: github.event_name == 'push'
 
       env:
 
@@ -147,64 +134,44 @@ jobs:
         SHA: ${{ github.sha }}
 
 
-
       run: |
 
 
-        # 创建 Release 说明文件
+        echo "生成 Release 说明"
+
 
         cat > release-notes.md <<EOF
-
-        自动云编译版本
-
-
-        分支:
-
-        \$BRANCH
+自动云编译版本
 
 
-        Commit:
+分支:
 
-        \$SHA
-
-
-        下载:
-
-        https://github.com/\$REPO/releases/latest/download/\$JAR_NAME.jar
+$BRANCH
 
 
-        资源文件不会打包，请运行前将 resources 文件夹放在 jar 同目录。
+Commit:
 
-        EOF
+$SHA
+
+
+下载:
+
+https://github.com/$REPO/releases/latest/download/$JAR_NAME.jar
+
+
+资源文件不会打包，请将 resources 文件夹放在 jar 同目录。
+EOF
 
 
 
-        # 删除旧 Release
+        echo "删除旧 Release"
+
 
         gh release delete latest --yes --cleanup-tag || true
 
 
 
-        # 创建新的 Release
-
-        gh release create latest "$JAR_PATH" \
-
-          --title "$JAR_NAME (最新编译版本)" \
-
-          --notes-file release-notes.md \
-
-          --latest
+        echo "创建新 Release"
 
 
-
-# 如果需要启用依赖安全扫描：
-#
-# 需要在:
-# 仓库 Settings
-# → Advanced Security
-# → 开启 Dependency graph
-#
-# 然后取消下面注释:
-#
-# - name: 生成并提交依赖关系图
-#   uses: gradle/actions/dependency-submission@af1da67850ed9a4cedd57bfd976089dd991e2582
+        gh release create latest "$JAR_PATH" --title "$JAR_NAME (最新编译版本)" --notes-file release-notes.md --latest
