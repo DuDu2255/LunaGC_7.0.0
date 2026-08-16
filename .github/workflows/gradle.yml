@@ -25,52 +25,39 @@ jobs:
 
     runs-on: ubuntu-latest
 
-
     permissions:
-
       contents: write
-
 
 
     steps:
 
 
       - name: 检出代码
-
         uses: actions/checkout@v4
 
 
 
       - name: 配置 JDK 21
-
         uses: actions/setup-java@v5
-
         with:
-
           java-version: '21'
-
           distribution: 'temurin'
 
 
 
       - name: 配置 Gradle
-
         uses: gradle/actions/setup-gradle@v4
 
 
 
       - name: Gradle 编译
-
         run: ./gradlew jar
 
 
 
       - name: 获取 jar 文件
-
         id: jar
-
         shell: bash
-
         run: |
 
           path="$(ls LunaGC-*.jar | head -n 1)"
@@ -82,9 +69,7 @@ jobs:
 
 
       - name: 上传编译文件
-
         uses: actions/upload-artifact@v4
-
         with:
 
           name: ${{ steps.jar.outputs.name }}
@@ -116,6 +101,7 @@ jobs:
 
         run: |
 
+
           echo "生成 Release 说明"
 
 
@@ -135,16 +121,15 @@ https://github.com/$REPO/releases/latest/download/$JAR_NAME.jar
 EOF
 
 
+
           echo "删除旧 Release"
 
 
           gh release delete latest --yes --cleanup-tag || true
 
 
+
           echo "创建新 Release"
 
 
-          gh release create latest "$JAR_PATH" \
-            --title "$JAR_NAME (最新编译版本)" \
-            --notes-file release-notes.md \
-            --latest
+          gh release create latest "$JAR_PATH" --title "$JAR_NAME (最新编译版本)" --notes-file release-notes.md --latest
