@@ -116,7 +116,7 @@ public final class GiveCommand implements CommandHandler {
         for (AvatarData avatarData : GameData.getAvatarDataMap().values()) {
             int id = avatarData.getId();
             boolean isTestAvatar = avatarData.getUseType().equals("AVATAR_TEST");
-            if (id < 10000002 || id >= 10000901) continue; // Exclude test avatars in id range
+            if (id < 10000002) continue; // Exclude test avatars in id range
             if (isTestAvatar) continue; // Exclude test avatars by type
             // Don't try to add each avatar to the current team
             player.addAvatar(
@@ -592,3 +592,4 @@ public final class GiveCommand implements CommandHandler {
         }
     }
 }
+
