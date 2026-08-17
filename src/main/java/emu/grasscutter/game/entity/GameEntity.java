@@ -31,6 +31,7 @@ import emu.grasscutter.data.GameData;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedOutputStream;
@@ -78,7 +79,9 @@ public abstract class GameEntity {
     private Int2ObjectMap<AbilityModifierController> instancedModifiers =
             new Int2ObjectOpenHashMap<>();
 
-    @Getter private Map<String, Float> globalAbilityValues = new HashMap<>();
+    // Abilities run on a thread pool, so a plain HashMap here threw ConcurrentModificationException
+    // out of whichever action happened to be reading the values while another wrote them
+    @Getter private Map<String, Float> globalAbilityValues = new ConcurrentHashMap<>();
 
     public GameEntity(Scene scene) {
         this.scene = scene;
@@ -98,7 +101,7 @@ public abstract class GameEntity {
         if (this.getGlobalAbilityValues().containsKey("NyxValue")) {
             return this.getGlobalAbilityValues().get("NyxValue");
         } else {
-            Grasscutter.getLogger().info("NyxValue not found");
+            Grasscutter.getLogger().debug("NyxValue not found");
             return 0f;
         }
     }
@@ -133,29 +136,38 @@ public abstract class GameEntity {
 
     public abstract Position getRotation();
 
+    // Not every entity carries fight properties, and the ones that do can be asked for them before
+    // they are built. Reading one used to throw straight out of whatever ability action asked.
     public void setFightProperty(FightProperty prop, float value) {
-        this.getFightProperties().put(prop.getId(), value);
+        this.setFightProperty(prop.getId(), value);
     }
 
     public void setFightProperty(int id, float value) {
-        this.getFightProperties().put(id, value);
+        var properties = this.getFightProperties();
+        if (properties == null) return;
+
+        properties.put(id, value);
     }
 
     public void addFightProperty(FightProperty prop, float value) {
-        this.getFightProperties().put(prop.getId(), this.getFightProperty(prop) + value);
+        this.setFightProperty(prop.getId(), this.getFightProperty(prop) + value);
     }
 
     public float getFightProperty(FightProperty prop) {
-        return this.getFightProperties().getOrDefault(prop.getId(), 0f);
+        var properties = this.getFightProperties();
+        return properties == null ? 0f : properties.getOrDefault(prop.getId(), 0f);
     }
 
     public boolean hasFightProperty(FightProperty prop) {
-        return this.getFightProperties().containsKey(prop.getId());
+        var properties = this.getFightProperties();
+        return properties != null && properties.containsKey(prop.getId());
     }
 
     public void addAllFightPropsToEntityInfo(SceneEntityInfo.Builder entityInfo) {
-        this.getFightProperties()
-                .forEach(
+        var properties = this.getFightProperties();
+        if (properties == null) return;
+
+        properties.forEach(
                         (key, value) -> {
                             if (key == 0) return;
                             entityInfo.addFightPropList(
@@ -182,11 +194,9 @@ public abstract class GameEntity {
         }
         float hpThresholdRatio = data.properties.Actor_HpThresholdRatio;
 
-        if (data.properties != null) {
-            if (data.state == AbilityModifier.State.Limbo && hpThresholdRatio > 0.0f) {
-                Grasscutter.getLogger().info("Limbo set to " + hpThresholdRatio);
-                this.setLimbo(hpThresholdRatio);
-            }
+        if (data.state == AbilityModifier.State.Limbo && hpThresholdRatio > 0.0f) {
+            Grasscutter.getLogger().debug("Limbo set to {}", hpThresholdRatio);
+            this.setLimbo(hpThresholdRatio);
         }
     }
 
