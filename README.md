@@ -1,12 +1,12 @@
 # LunaGC-7.0.0 WIP
 
 ## Note from the maintainer
-This is a fork from girluh's [LunaGC](https://github.com/girluh/LunaGC). Very early update so expect many bugs.
+This is a fork from girluh's [LunaGC](https://github.com/girluh/LunaGC). VERY WIP, so expect many bugs.
 
 ## Updated version of Grasscutters, with some new features implemented.
-Old Discord for LunaGC https://discord.gg/7D5gkyJR5Y (don't ask for support there as it's been taken over by other people (...), instead create an issue in this repository)
+If you need help, please create an issue in this repository and I will try my best to help.
 
-Features and functionality of the ps is not guaranteed, try it yourself to see what works and what doesnt.
+Features and functionality of the ps is not guaranteed, try it yourself to see what works and what doesnt (Most are broken).
 This is possibly the only public PS with updated mob and gadget spawns! (Up to Version 5.4)
 
 Contribute if you want/can...
@@ -21,19 +21,19 @@ Contribute if you want/can...
 - Get [Java 17](https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html)
 - Get [MongoDB Community Server](https://www.mongodb.com/try/download/community)
 - Get [NodeJS](https://nodejs.org/dist/v20.15.0/node-v20.15.0-x64.msi) (For handbook generation)
-- Get game version REL6.7.0
+- Get game version REL7.0.0
 - Make sure to install java and set the environment variables.
 - Build the server (refer to "Compile the actual server" in this guide.)
 - Download the [Resources](https://github.com/capyb2222/LunaGC-Resources), make a new folder called `resources` in the downloaded LunaGC folder and then extract the resources in that new folder.
 - Set useEncryption, Questing and useInRouting to false (it should be false by default, if not then change it)
 - [Patch the game](#patching-the-game)
-- Start the server and the game, make sure to also create an account in the LunaGC console!
+- Start the server (you can use Cultivation or Fiddler) and the game (the client), make sure to also create an account in the LunaGC console (otherwise you cannot log in)!
 - Have fun (or don't)
 
 ### Patching the game
 - Install [**Rust**](https://rust-lang.org/learn/get-started/) and **Cargo** (comes with rustup)
-- Go to the `patch/` folder (make sure you have cloned this repository with the `--recurse-submodules` flag)
-- Run `cargo build --release` to build the DLL at `target/release`
+- Go to the `patch/` folder (make sure you have cloned this repository with the `--recurse-submodules` flag). If that folder is empty, run `git submodule update --init` or clone [animegamepatch](https://github.com/capyb2222/animegamepatch) yourself
+- Run `cargo build --release` to build the DLL `ext.dll` at `target/release`
 - Inject the DLL into the game. You can do this by renaming the patch to `Astrolabe.dll` and putting it in the game folder at `GenshinImpact_Data/Plugins`. Make sure you back up the old `Astrolabe.dll` in the plugins folder.
 
 ### Getting started
@@ -78,6 +78,34 @@ Contribute if you want/can...
 ./gradlew generateHandbook
 ```
 
+## Artifact shop
+
+Every official 5-star artifact piece - 290 of them, the five slots of all 62 released sets - is on
+sale in the general goods store (Blanche's *Second Life*, next to the fountain in Mondstadt).
+
+Each purchase rolls the piece fresh rather than handing over a fixed copy, the way an artifact
+domain does: the main stat is drawn from the slot's real pool and the substats from the game's own
+affix table, so every number printed on the piece is one the game would print. It arrives at +20
+with nine substat rolls on it, and the odds are weighted towards CRIT Rate, CRIT DMG, ATK%,
+Elemental Mastery and the DMG bonuses, and towards the top end of each roll. Buying several at once
+gives you that many separately rolled pieces.
+
+Tune it under `server.game.gameOptions.artifactShop` in `config.json`:
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `enabled` | `true` | Turns the listing off entirely. |
+| `shopId` | `1004` | Which shop carries it. `1001` is Paimon's Bargains, straight off the shop menu. |
+| `costMora` / `costPrimogems` | `20000` / `0` | Price per piece. |
+| `costItemId` / `costItemCount` | `0` / `0` | An item to charge on top of the currencies. |
+| `buyLimit` | `0` | Purchases per piece per player. `0` is unlimited. |
+| `artifactLevel` | `20` | The upgrade level pieces arrive at, `0`-`20`. |
+| `critWeight` | `8` | Weight multiplier for CRIT Rate and CRIT DMG. `1` rolls them as the game does. |
+| `damageWeight` | `3` | Weight multiplier for ATK%, Elemental Mastery and the DMG bonuses. |
+| `highRollBias` | `3` | How hard each stat leans towards the best of its four values. `0` rolls evenly. |
+
+Setting the last three to `1`, `1` and `0` gives you plain, unweighted domain rolls.
+
 ## Troubleshooting
 
 - Make sure to set useEncryption and useInRouting both to false otherwise you might encounter errors.
@@ -88,6 +116,6 @@ Contribute if you want/can...
 
 girluh's [LunaGC](https://github.com/girluh/LunaGC)
 
-kitkat's patch
+kitkat's [patch](https://github.com/capyb2222/animegamepatch)
 
 Terax for nt
