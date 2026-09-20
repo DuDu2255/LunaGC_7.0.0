@@ -1,12 +1,14 @@
 package emu.grasscutter.server.packet.send;
 
 import com.google.protobuf.CodedOutputStream;
+import emu.grasscutter.game.world.WorldRegions;
 import emu.grasscutter.net.packet.*;
 import java.io.ByteArrayOutputStream;
 
 public class PacketSceneDataNotify extends BasePacket {
 
     private static final int F_SCENE_ID = 3;
+    private static final int F_LIMITED_REGION_INFO = 2;
 
     public PacketSceneDataNotify(int sceneId) {
         super(PacketOpcodes.SceneDataNotify);
@@ -18,6 +20,10 @@ public class PacketSceneDataNotify extends BasePacket {
             ByteArrayOutputStream baos = new ByteArrayOutputStream(16);
             CodedOutputStream cos = CodedOutputStream.newInstance(baos);
             if (sceneId != 0) cos.writeUInt32(F_SCENE_ID, sceneId);
+            var regions = WorldRegions.openRegions(sceneId);
+            if (regions.getLimitedRegionListCount() > 0) {
+                cos.writeMessage(F_LIMITED_REGION_INFO, regions);
+            }
             cos.flush();
             return baos.toByteArray();
         } catch (Exception e) {
