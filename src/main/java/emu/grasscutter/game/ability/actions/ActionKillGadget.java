@@ -21,7 +21,10 @@ public final class ActionKillGadget extends AbilityActionHandler {
     @Override
     public boolean execute(
             Ability ability, AbilityModifierAction action, ByteString abilityData, GameEntity target) {
-        var configId = action.gadgetInfo != null ? action.gadgetInfo.configID : 0;
+        var configId =
+                (action.gadgetInfo != null && action.gadgetInfo.configID > 0)
+                        ? action.gadgetInfo.configID
+                        : action.gadgetID;
         if (configId == 0 || target == null) return false;
 
         var scene = target.getScene();

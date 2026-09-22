@@ -5,6 +5,7 @@ import static emu.grasscutter.config.Configuration.GAME_OPTIONS;
 import dev.morphia.annotations.*;
 import emu.grasscutter.GameConstants;
 import emu.grasscutter.data.GameData;
+import emu.grasscutter.data.binout.ExtraTalents;
 import emu.grasscutter.data.binout.OpenConfigEntry;
 import emu.grasscutter.data.binout.OpenConfigEntry.SkillPointModifier;
 import emu.grasscutter.data.common.FightPropData;
@@ -703,6 +704,7 @@ public class Avatar {
         }
 
         // Add proud skills and unlock them if needed
+        var talentOwners = new HashSet<String>();
         AvatarSkillDepotData skillDepot =
                 GameData.getAvatarSkillDepotDataMap().get(this.getSkillDepotId());
         this.getProudSkillList().clear();
@@ -740,6 +742,25 @@ public class Avatar {
 
             // Add any embryos from this proud skill
             this.addToExtraAbilityEmbryos(proudSkillData.getOpenConfig());
+            talentOwners.add(ExtraTalents.owner(proudSkillData.getOpenConfig()));
+        }
+
+        if (skillDepot != null) {
+            skillDepot
+                    .getSkillsAndEnergySkill()
+                    .mapToObj(GameData.getAvatarSkillDataMap()::get)
+                    .filter(Objects::nonNull)
+                    .mapToInt(AvatarSkillData::getProudSkillGroupId)
+                    .filter(groupId -> groupId > 0)
+                    .mapToObj(groupId -> GameData.getProudSkillDataMap().get((groupId * 100) + 1))
+                    .filter(Objects::nonNull)
+                    .map(ProudSkillData::getOpenConfig)
+                    .filter(Objects::nonNull)
+                    .forEach(
+                            openConfig -> {
+                                this.addToExtraAbilityEmbryos(openConfig);
+                                talentOwners.add(ExtraTalents.owner(openConfig));
+                            });
         }
 
         // Constellations
@@ -749,6 +770,13 @@ public class Avatar {
                 .filter(Objects::nonNull)
                 .map(AvatarTalentData::getOpenConfig)
                 .filter(Objects::nonNull)
+                .forEach(
+                        openConfig -> {
+                            this.addToExtraAbilityEmbryos(openConfig);
+                            talentOwners.add(ExtraTalents.owner(openConfig));
+                        });
+
+        ExtraTalents.forOwners(talentOwners, this.getAvatarData().getName())
                 .forEach(this::addToExtraAbilityEmbryos);
         // Add any skill strings from this constellation
 

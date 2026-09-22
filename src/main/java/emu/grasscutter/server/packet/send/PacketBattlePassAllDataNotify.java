@@ -11,7 +11,9 @@ public class PacketBattlePassAllDataNotify extends BasePacket {
 
         var proto = BattlePassAllDataNotify.newBuilder();
 
-        proto.setHaveCurSchedule(true).setCurSchedule(player.getBattlePassManager().getScheduleProto());
+        proto.setHaveCurSchedule(true)
+                .setCurSchedule(player.getBattlePassManager().getScheduleProto())
+                .setBattlePassPlan(player.getBattlePassManager().getRewardPlan());
 
         for (var missionData : GameData.getBattlePassMissionDataMap().values()) {
             // Dont send invalid refresh types

@@ -25,11 +25,7 @@ public final class PlayerProgressManager extends BasePlayerDataManager {
      *****************************************************************************************************************/
 
     // Set of open states that are never unlocked, whether they fulfill the conditions or not.
-    public static final Set<Integer> BLACKLIST_OPEN_STATES =
-            Set.of(
-                    48 // blacklist OPEN_STATE_LIMIT_REGION_GLOBAL to make Meledy happy. =D Remove this as
-                    // soon as quest unlocks are fully implemented.
-                    );
+    public static final Set<Integer> BLACKLIST_OPEN_STATES = Set.of();
 
     public static final Set<Integer> IGNORED_OPEN_STATES =
             Set.of(
@@ -38,9 +34,6 @@ public final class PlayerProgressManager extends BasePlayerDataManager {
                     // This should be removed when city reputation is implemented.
                     );
 
-    // Open states 7.0 added that sit behind OPEN_STATE_COND_QUEST and nothing else. With questing
-    // off nothing ever satisfies that condition, so the features stay locked for good rather than
-    // just unlocking late - the Nod-Krai and Natlan menu entries among them. Unlocked outright.
     public static final Set<Integer> QUEST_GATED_7_0_OPEN_STATES =
             Set.of(6701, 6702, 6706, 7011, 7014, 7015, 7016, 7021, 7025, 7055, 7056, 7059);
 
@@ -95,8 +88,6 @@ public final class PlayerProgressManager extends BasePlayerDataManager {
             // Auto-unlock the first statue and map area.
             this.player.getUnlockedScenePoints(3).add(7);
             this.player.getUnlockedSceneAreas(3).add(1);
-            // Allow the player to visit all areas.
-            this.setOpenState(47, 1, true);
         }
     }
 
@@ -140,20 +131,22 @@ public final class PlayerProgressManager extends BasePlayerDataManager {
                         return false;
                     }
                 }
+                    // questing off means a quest gate never opens
                 case OPEN_STATE_COND_QUEST -> {
-                    // check sub quest id for quest finished met requirements
-                    var quest = this.player.getQuestManager().getQuestById(condition.getParam());
-                    if (quest == null || quest.getState() != QuestState.QUEST_STATE_FINISHED) {
-                        return false;
+                    if (GAME_OPTIONS.questing.enabled) {
+                        var quest = this.player.getQuestManager().getQuestById(condition.getParam());
+                        if (quest == null || quest.getState() != QuestState.QUEST_STATE_FINISHED) {
+                            return false;
+                        }
                     }
                 }
                 case OPEN_STATE_COND_PARENT_QUEST -> {
-                    // check main quest id for quest finished met requirements
-                    // TODO not sure if its having or finished quest
-                    var mainQuest = this.player.getQuestManager().getMainQuestById(condition.getParam());
-                    if (mainQuest == null
-                            || mainQuest.getState() != ParentQuestState.PARENT_QUEST_STATE_FINISHED) {
-                        return false;
+                    if (GAME_OPTIONS.questing.enabled) {
+                        var mainQuest = this.player.getQuestManager().getMainQuestById(condition.getParam());
+                        if (mainQuest == null
+                                || mainQuest.getState() != ParentQuestState.PARENT_QUEST_STATE_FINISHED) {
+                            return false;
+                        }
                     }
                 }
                     // ToDo: Implement.
@@ -200,7 +193,7 @@ public final class PlayerProgressManager extends BasePlayerDataManager {
         // Get list of open states that are not yet unlocked.
         var lockedStates =
                 GameData.getOpenStateList().stream()
-                        .filter(s -> this.player.getOpenStates().getOrDefault(s, 0) == 0)
+                        .filter(s -> this.player.getOpenStates().getOrDefault(s.getId(), 0) == 0)
                         .toList();
 
         // Try unlocking all of them.

@@ -3,6 +3,7 @@ package emu.grasscutter.game.battlepass;
 import dev.morphia.annotations.*;
 import emu.grasscutter.*;
 import emu.grasscutter.data.GameData;
+import emu.grasscutter.data.excels.BattlePassScheduleData;
 import emu.grasscutter.data.common.ItemParamData;
 import emu.grasscutter.data.excels.*;
 import emu.grasscutter.database.DatabaseHelper;
@@ -10,6 +11,7 @@ import emu.grasscutter.game.inventory.*;
 import emu.grasscutter.game.player.*;
 import emu.grasscutter.game.props.*;
 import emu.grasscutter.net.proto.BattlePassCycleOuterClass.BattlePassCycle;
+import emu.grasscutter.net.proto.BattlePassRewardPlanOptionOuterClass.BattlePassRewardPlanOption;
 import emu.grasscutter.net.proto.BattlePassRewardTakeOptionOuterClass.BattlePassRewardTakeOption;
 import emu.grasscutter.net.proto.BattlePassScheduleOuterClass.BattlePassSchedule;
 import emu.grasscutter.net.proto.BattlePassUnlockStatusOuterClass.BattlePassUnlockStatus;
@@ -31,6 +33,7 @@ public class BattlePassManager extends BasePlayerDataManager {
 
     @Getter private boolean viewed;
     private boolean paid;
+    private int rewardPlan;
 
     private Map<Integer, BattlePassMission> missions;
     private Map<Integer, BattlePassReward> takenRewards;
@@ -46,6 +49,17 @@ public class BattlePassManager extends BasePlayerDataManager {
     public void setPlayer(Player player) {
         this.player = player;
         this.ownerUid = player.getUid();
+    }
+
+    public int getRewardPlan() {
+        return this.rewardPlan != 0 ? this.rewardPlan : BattlePassRewardPlanData.defaultPlan();
+    }
+
+    public void setRewardPlan(int plan) {
+        if (GameData.getBattlePassRewardPlanDataMap().containsKey(plan)) {
+            this.rewardPlan = plan;
+            this.save();
+        }
     }
 
     public void updateViewed() {
@@ -229,7 +243,7 @@ public class BattlePassManager extends BasePlayerDataManager {
 
             BattlePassRewardData rewardData =
                     GameData.getBattlePassRewardDataMap()
-                            .get(GameConstants.BATTLE_PASS_CURRENT_INDEX * 100 + option.getTag().getLevel());
+                            .get(this.getRewardPlan() * 100 + option.getTag().getLevel());
 
             // Sanity check with excel data
             if (rewardData.getFreeRewardIdList().contains(option.getTag().getRewardId())) {
@@ -365,7 +379,7 @@ public class BattlePassManager extends BasePlayerDataManager {
 
         BattlePassSchedule.Builder schedule =
                 BattlePassSchedule.newBuilder()
-                        .setScheduleId(2700)
+                        .setScheduleId(BattlePassScheduleData.currentId())
                         .setLevel(this.getLevel())
                         .setPoint(this.getPoint())
                         .setBeginTime(0)
@@ -379,6 +393,11 @@ public class BattlePassManager extends BasePlayerDataManager {
                                         .setBeginTime(0)
                                         .setEndTime((int) nextSundayTime.atZone(ZoneId.systemDefault()).toEpochSecond())
                                         .setCycleIdx(3));
+
+        for (int plan : GameData.getBattlePassRewardPlanDataMap().keySet()) {
+            schedule.addRewardPlanOptionList(
+                    BattlePassRewardPlanOption.newBuilder().setBattlePassPlan(plan).setBajoajbladk(true));
+        }
 
         for (BattlePassReward reward : getTakenRewards().values()) {
             schedule.addRewardTakenList(reward.toProto());

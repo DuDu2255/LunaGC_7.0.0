@@ -74,7 +74,7 @@ public class AbilityModifier implements Serializable {
 
     @SerializedName(value = "modifierMixins", alternate = "IIECHMHLPDM")
     public AbilityMixinData[] modifierMixins;
-    public AbilityModifierProperty properties;
+    public Map<String, DynamicFloat> properties;
 
     public ElementType elementType;
     public DynamicFloat elementDurability = DynamicFloat.ZERO;
@@ -473,12 +473,6 @@ public class AbilityModifier implements Serializable {
             BigWorldOnly,
             ForceDrop
         }
-    }
-
-    public static class AbilityModifierProperty implements Serializable {
-        // Usually a constant, but a config may also name an ability special to read it from.
-        public DynamicFloat Actor_HpThresholdRatio = DynamicFloat.ZERO;
-
     }
 
     public enum State {
