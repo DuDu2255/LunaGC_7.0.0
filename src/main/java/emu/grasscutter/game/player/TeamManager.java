@@ -357,6 +357,7 @@ public final class TeamManager extends BasePlayerDataManager {
         int level = this.getMoonsignLevel();
         int teamEntityId = this.getEntity().getId();
 
+        this.getEntity().getGlobalAbilityValues().put("SGV_MoonPhaseLevel", (float) level);
         this.getPlayer().sendPacket(new PacketServerGlobalValueChangeNotify(
             teamEntityId, "SGV_MoonPhaseLevel", (float) level));
 
@@ -385,9 +386,17 @@ public final class TeamManager extends BasePlayerDataManager {
         long hexenzirkelCount = this.getActiveTeam().stream()
             .filter(e -> PacketPlayerEnterSceneInfoNotify.getHexenzirkelIds().contains(e.getAvatar().getAvatarId()))
             .count();
+        this.getEntity().getGlobalAbilityValues().put("SGV_HexenzirkelLevel", (float) hexenzirkelCount);
         this.getPlayer().sendPacket(new PacketServerGlobalValueChangeNotify(
             this.getEntity().getId(), "SGV_HexenzirkelLevel", (float) hexenzirkelCount));
         this.getPlayer().sendPacket(new PacketTeamHexenzirkelChangeNotify((int) hexenzirkelCount));
+
+        var abilityManager = this.getPlayer().getAbilityManager();
+        if (abilityManager != null) {
+            for (var avatarEntity : this.getActiveTeam()) {
+                abilityManager.refreshGlobalValueWatchers(avatarEntity);
+            }
+        }
     }
 
     public void updateTeamEntities(BasePacket responsePacket) {

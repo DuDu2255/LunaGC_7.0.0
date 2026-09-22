@@ -83,7 +83,10 @@ public class AbilityMixinData implements Serializable {
         AvatarSteerByCameraMixin,
         ModifyDamageCountMixin,
         AttackCostElementMixin,
-        OnAvatarUseSkillMixin
+        OnAvatarUseSkillMixin,
+        DoActionByElementReactionMixin,
+        DoActionBySelfElementReactionMixin,
+        CurLocalAvatarMixinV2
     }
     public AbilityModifierAction[] idontknowwhattonamethis;
     public AbilityModifierAction[] idontknowwhattonamethis2;
@@ -111,6 +114,16 @@ public class AbilityMixinData implements Serializable {
     @SerializedName("succActions")
     public AbilityModifierAction[] succActions;
 
+    @SerializedName("actions")
+    public AbilityModifierAction[] actions;
+
+    @SerializedName("actionQueue")
+    public AbilityModifierAction[] actionQueue;
+
+    public List<String> reactionTypes = new ArrayList<>();
+    public List<String> entityTypes = new ArrayList<>();
+    public List<String> attackTags = new ArrayList<>();
+
     @SerializedName("$type")
     public Type type;
 
@@ -126,6 +139,9 @@ public class AbilityMixinData implements Serializable {
     public String stateID;
     public DynamicFloat defaultGlobalValueOnCreate = DynamicFloat.ZERO;
     public List<DynamicFloat> ratioSteps = new ArrayList<>();
+    public List<DynamicFloat> valueSteps = new ArrayList<>();
+    public String globalValueTarget;
+    public boolean removeAppliedModifier = true;
     @JsonAdapter(JsonAdapters.ModifierNameStepsAdapter.class)
     public List<String> modifierNameSteps = new ArrayList<>();
     public boolean EJEMBMFPBKF = true;

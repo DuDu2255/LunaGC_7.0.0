@@ -671,6 +671,7 @@ public class World implements Iterable<Player> {
      */
     public void changeTime(long gameTime) {
         this.currentWorldTime = gameTime;
+        this.lastUpdateTime = System.currentTimeMillis();
     }
 
     /**

@@ -36,6 +36,7 @@ public class ActionCreateGadget extends AbilityActionHandler {
     public boolean execute(
             Ability ability, AbilityModifierAction action, ByteString abilityData, GameEntity target) {
         var entity = ability.getOwner();
+        if (entity instanceof EntityClientGadget) return true;
 
         // The client owns these chains and spawns its own copies, so ours are only ever duplicates -
         // and duplicates the owner can see, since addEntity below broadcasts to everyone while a
